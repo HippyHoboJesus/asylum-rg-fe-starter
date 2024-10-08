@@ -13,8 +13,8 @@ import { resetVisualizationQuery } from '../../../state/actionCreators';
 import test_data from '../../../data/test_data.json';
 import { colors } from '../../../styles/data_vis_colors';
 import ScrollToTopOnMount from '../../../utils/scrollToTopOnMount';
-
 const { background_color } = colors;
+const port = 1010;
 
 function GraphWrapper(props) {
   const { set_view, dispatch } = props;
@@ -50,7 +50,12 @@ function GraphWrapper(props) {
         break;
     }
   }
-  function updateStateWithNewData(years, view, office, stateSettingCallback) {
+  async function updateStateWithNewData(
+    years,
+    view,
+    office,
+    stateSettingCallback
+  ) {
     /*
           _                                                                             _
         |                                                                                 |
@@ -72,34 +77,125 @@ function GraphWrapper(props) {
                                    -- Mack 
     
     */
+    // const fiscalUrl = `https://hrf-asylum-be-b.herokuapp.com/cases/fiscalSummary`;
+    // const citizenshipUrl = `https://hrf-asylum-be-b.herokuapp.com/cases/citizenshipSummary`;
+
+    // const fetchFiscalAndCitizenship = async () => {
+    //   try {
+    //     const [fiscalresponse, citizenshipresponse] = await Promise.all([
+    //       axios.get(fiscalUrl),
+    //       axios.get(citizenshipUrl)
+    //     ]);
+
+    //     await fs.writeFile('fiscal.json', JSON.stringify(fiscalresponse.data));
+    //     await fs.writeFile('citizanship.json', JSON.stringify(citizenshipresponse.data));
+    //   } catch (error) {
+    //     console.error(error);
+    //   };
+    // };
+
+    // const getSummary = async () => {
+    //   try {
+    //     const [fiscalData, citizenshipData] = await Promise.all([
+    //       fs.readFile('fiscal.json', 'utf8'),
+    //       fs.readFile('citizenship.json', 'utf8'),
+    //     ]);
+
+    //     const fiscal = JSON.parse(fiscalData);
+    //     const citizenship = JSON.parse(citizenshipData);
+
+    //     const summary = [
+    //       { fiscal,
+    //       citizenship}
+    //     ];
+
+    //     return summary;
+
+    //   } catch (error) {
+    //     console.error(error);
+    //     return [];
+    //   }
+    // };
+
+    // fetchFiscalAndCitizenship();
+
+    // app.get('summary', async (req, res) => {
+    //   const summary = await getSummary();
+    //   res.send(summary);
+    // });
+
+    // app.listen(port, () => {
+    //   console.log(`Example app listening at http://localhost:${port}`);
+    // });
+
+    const realURL = `https://hrf-asylum-be-b.herokuapp.com/cases`;
 
     if (office === 'all' || !office) {
-      axios
-        .get(process.env.REACT_APP_API_URI, {
+      Promise.all([
+        await axios.get(`${realURL}/fiscalSummary`, {
           // mock URL, can be simply replaced by `${Real_Production_URL}/summary` in prod!
           params: {
             from: years[0],
             to: years[1],
           },
-        })
-        .then(result => {
-          stateSettingCallback(view, office, test_data); // <-- `test_data` here can be simply replaced by `result.data` in prod!
+        }),
+
+        await axios.get(`${realURL}/citizenshipSummary`, {
+          // mock URL, can be simply replaced by `${Real_Production_URL}/summary` in prod!
+          params: {
+            from: years[0],
+            to: years[1],
+          },
+        }),
+      ])
+        .then(([callA, callB]) => {
+          let yearResults = callA.data.yearResults;
+          let citizenshipResults = callB.data;
+          let summary = [
+            {
+              yearResults,
+              citizenshipResults,
+            },
+          ];
+          console.log(summary);
+          console.log(test_data);
+          stateSettingCallback(view, office, summary);
         })
         .catch(err => {
           console.error(err);
         });
     } else {
-      axios
-        .get(process.env.REACT_APP_API_URI, {
+      Promise.all([
+        await axios.get(`${realURL}/fiscalSummary`, {
           // mock URL, can be simply replaced by `${Real_Production_URL}/summary` in prod!
           params: {
             from: years[0],
             to: years[1],
             office: office,
           },
-        })
-        .then(result => {
-          stateSettingCallback(view, office, test_data); // <-- `test_data` here can be simply replaced by `result.data` in prod!
+        }),
+
+        await axios.get(`${realURL}/citizenshipSummary`, {
+          // mock URL, can be simply replaced by `${Real_Production_URL}/summary` in prod!
+          params: {
+            from: years[0],
+            to: years[1],
+            office: office,
+          },
+        }),
+      ])
+        .then(([callA, callB]) => {
+          let yearResults = callA.data.yearResults;
+          let citizenshipResults = callB.data;
+          let summary = [
+            {
+              yearResults,
+              citizenshipResults,
+            },
+          ];
+          console.log(summary);
+          console.log(test_data);
+          stateSettingCallback(view, office, summary);
         })
         .catch(err => {
           console.error(err);
